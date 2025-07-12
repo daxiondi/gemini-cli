@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { AuthType } from '@google/gemini-cli-core';
+import { AuthType, getModelConfig, ModelProvider } from '@google/gemini-cli-core';
 import { validateAuthMethod } from '../../config/auth.js';
 
 interface AuthDialogProps {
@@ -23,11 +23,32 @@ export function AuthDialog({
   settings,
   initialErrorMessage,
 }: AuthDialogProps): React.JSX.Element {
+  // 检查是否配置了新的 AI 环境变量
+  const hasAIProvider = !!process.env.AI_PROVIDER;
+  const hasAIApiKey = !!process.env.AI_API_KEY;
+  
+  // 如果配置了新的环境变量且不是 Gemini 提供商，自动使用 API Key 认证
+  useEffect(() => {
+    if (hasAIProvider && hasAIApiKey) {
+      try {
+        const modelConfig = getModelConfig();
+        if (modelConfig.provider !== ModelProvider.GEMINI) {
+          // 对于非 Gemini 提供商，自动选择 Gemini API Key 认证方式
+          // （实际上会使用 AI_API_KEY）
+          onSelect(AuthType.USE_GEMINI, SettingScope.User);
+          return;
+        }
+      } catch (error) {
+        // 如果获取配置失败，继续显示认证对话框
+      }
+    }
+  }, [hasAIProvider, hasAIApiKey, onSelect]);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(
     initialErrorMessage
       ? initialErrorMessage
-      : process.env.GEMINI_API_KEY
-        ? 'Existing API key detected (GEMINI_API_KEY). Select "Gemini API Key" option to use it.'
+      : (process.env.GEMINI_API_KEY || process.env.AI_API_KEY)
+        ? 'Existing API key detected. Select "Use Gemini API Key" option to use it.'
         : null,
   );
   const items = [
@@ -55,7 +76,8 @@ export function AuthDialog({
       return item.value === settings.merged.selectedAuthType;
     }
 
-    if (process.env.GEMINI_API_KEY) {
+    // 检查是否有任何形式的 API Key
+    if (process.env.GEMINI_API_KEY || process.env.AI_API_KEY) {
       return item.value === AuthType.USE_GEMINI;
     }
 

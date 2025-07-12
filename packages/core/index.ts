@@ -9,4 +9,7 @@ export {
   DEFAULT_GEMINI_MODEL,
   DEFAULT_GEMINI_FLASH_MODEL,
   DEFAULT_GEMINI_EMBEDDING_MODEL,
+  getModelConfig,
+  ModelProvider,
+  isThinkingSupported,
 } from './src/config/models.js';

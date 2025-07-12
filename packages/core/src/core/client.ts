@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import process from 'node:process';
 import {
   EmbedContentParameters,
   GenerateContentConfig,
@@ -38,12 +39,7 @@ import {
   createContentGenerator,
 } from './contentGenerator.js';
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
-import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
-
-function isThinkingSupported(model: string) {
-  if (model.startsWith('gemini-2.5')) return true;
-  return false;
-}
+import { DEFAULT_GEMINI_FLASH_MODEL, isThinkingSupported } from '../config/models.js';
 
 /**
  * Returns the index of the content after the fraction of the total characters in the history.
@@ -498,7 +494,7 @@ export class GeminiClient {
       );
     }
 
-    return embedContentResponse.embeddings.map((embedding, index) => {
+    return embedContentResponse.embeddings.map((embedding: any, index: number) => {
       const values = embedding.values;
       if (!values || values.length === 0) {
         throw new Error(

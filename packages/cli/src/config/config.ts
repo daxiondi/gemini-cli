@@ -18,6 +18,7 @@ import {
   FileDiscoveryService,
   TelemetryTarget,
 } from '@google/gemini-cli-core';
+import { getModelConfig } from '@google/gemini-cli-core';
 import { Settings } from './settings.js';
 
 import { Extension, filterActiveExtensions } from './extension.js';
@@ -67,7 +68,14 @@ export async function parseArguments(): Promise<CliArgs> {
       alias: 'm',
       type: 'string',
       description: `Model`,
-      default: process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL,
+      default: (() => {
+        try {
+          const modelConfig = getModelConfig();
+          return modelConfig.model;
+        } catch {
+          return process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+        }
+      })(),
     })
     .option('prompt', {
       alias: 'p',
