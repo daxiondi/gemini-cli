@@ -1,7 +1,7 @@
 {
-  "name": "@google/gemini-cli-core",
+  "name": "universal-ai-cli-core",
   "version": "0.1.11",
-  "description": "Gemini CLI Core",
+  "description": "Core library for Universal AI CLI",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/google-gemini/gemini-cli.git"

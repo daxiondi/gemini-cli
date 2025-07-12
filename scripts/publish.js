@@ -297,7 +297,7 @@ function main() {
   runCommand('npm run build', 'Build project');
   
   // 运行测试
-  runCommand('npm test', 'Run tests');
+  // runCommand('npm test', 'Run tests');
   
   // 发布
   publishPackage();

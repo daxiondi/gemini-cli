@@ -1,6 +1,6 @@
 {
-  "name": "@google/gemini-cli",
-  "version": "0.1.11",
+  "name": "universal-ai-cli",
+  "version": "1.0.0",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -11,7 +11,7 @@
   "private": "true",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/google-gemini/gemini-cli.git"
+    "url": "git+https://github.com/daxiondi/universal-ai-cli.git"
   },
   "config": {
     "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.11"
@@ -51,7 +51,8 @@
     "release": "npm run build && npm run test && node scripts/publish.js"
   },
   "bin": {
-    "gemini": "bundle/gemini.js"
+    "uai": "bundle/gemini.js",
+    "universal-ai": "bundle/gemini.js"
   },
   "files": [
     "bundle/",
@@ -83,5 +84,25 @@
     "typescript-eslint": "^8.30.1",
     "vitest": "^3.2.4",
     "yargs": "^17.7.2"
-  }
+  },
+  "description": "Universal AI CLI - Multi-provider AI assistant with support for Gemini, OpenAI, Anthropic, Doubao and more",
+  "keywords": [
+    "ai",
+    "cli",
+    "gemini",
+    "openai",
+    "anthropic",
+    "doubao",
+    "chatgpt",
+    "claude",
+    "assistant",
+    "universal",
+    "multi-provider"
+  ],
+  "bugs": {
+    "url": "https://github.com/daxiondi/universal-ai-cli/issues"
+  },
+  "homepage": "https://github.com/daxiondi/universal-ai-cli#readme",
+  "author": "Universal AI CLI Contributors",
+  "license": "MIT"
 }
