@@ -41,7 +41,16 @@ interface OpenAIEmbeddingResponse {
 }
 
 /**
- * OpenAI 兼容的客户端适配器，用于支持 doubao 等遵循 OpenAI API 格式的模型
+ * OpenAI 兼容的客户端适配器
+ * 
+ * 这里我们选择使用 fetch API 而不是 OpenAI 库的原因：
+ * 1. 更好的兼容性 - 支持各种 OpenAI 兼容的 API（Doubao、DeepSeek 等）
+ * 2. 更灵活的定制 - 容易添加思考功能等特殊参数
+ * 3. 更轻量级 - 不增加额外依赖
+ * 4. 更好的调试 - 可以完全控制请求和响应处理
+ * 
+ * 如果需要更完善的功能（如内置重试、流式响应等），
+ * 可以考虑在特定情况下使用 OpenAI 库作为后备实现。
  */
 export class OpenAICompatibleClient implements ContentGenerator {
   constructor(private config: ModelConfig) {}
@@ -189,14 +198,184 @@ export class OpenAICompatibleClient implements ContentGenerator {
   async generateContentStream(
     request: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
-    // 对于流式响应，我们先实现一个简单的版本
-    const response = await this.generateContent(request);
+    const messages: OpenAIMessage[] = [];
+
+    console.log('Stream Request config:', request.config);
     
-    async function* streamGenerator() {
-      yield response;
+    // 转换 Gemini 格式的 contents 为 OpenAI 格式的 messages
+    const contents = Array.isArray(request.contents) ? request.contents : [request.contents];
+    for (const content of contents) {
+      if (typeof content === 'string') continue;
+      
+      // 确保是 Content 对象而不是 Part
+      if ('role' in content && 'parts' in content) {
+        const role = content.role === 'model' ? 'assistant' : content.role as 'user' | 'system';
+        const text = content.parts
+          ?.filter((part: any) => 'text' in part)
+          .map((part: any) => part.text)
+          .join('\n') || '';
+        
+        if (text) {
+          messages.push({ role, content: text });
+        }
+      }
     }
+
+    // 智能构建 API URL
+    let apiUrl = this.config.baseUrl || '';
+    if (!apiUrl.includes('chat/completions')) {
+      apiUrl = apiUrl.endsWith('/') ? `${apiUrl}chat/completions` : `${apiUrl}/chat/completions`;
+    }
+
+    // 检查是否启用了思考功能
+    const hasThinkingConfig = request.config && 'thinkingConfig' in request.config;
+    const includeThoughts = hasThinkingConfig && (request.config as any).thinkingConfig?.includeThoughts;
     
-    return streamGenerator();
+    console.log('Stream Thinking config detected:', hasThinkingConfig, 'Include thoughts:', includeThoughts);
+
+    // 构建请求体 - 启用流式传输
+    const requestBody: any = {
+      model: this.config.model,
+      messages,
+      temperature: request.config?.temperature || 0.7,
+      max_tokens: request.config?.maxOutputTokens || 2048,
+      stream: true, // 启用流式传输
+    };
+
+    // 如果启用了思考功能，添加相关参数
+    if (includeThoughts) {
+      if (this.config.model?.includes('thinking')) {
+        requestBody.include_reasoning = true;
+      }
+    }
+
+    console.log('Stream Request body:', JSON.stringify(requestBody, null, 2));
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.config.apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Stream API Error:', response.status, response.statusText, errorText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return this.createStreamGenerator(response, includeThoughts);
+  }
+
+  private async *createStreamGenerator(
+    response: Response, 
+    includeThoughts: boolean
+  ): AsyncGenerator<GenerateContentResponse> {
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body reader available');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let isInThinking = false;
+    let thinkingContent = '';
+    let mainContent = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') return;
+
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices?.[0]?.delta?.content || '';
+              
+              if (content) {
+                console.log('Stream content chunk:', content);
+                
+                // 检测思考开始和结束标记
+                if (includeThoughts) {
+                  if (content.includes('<thinking>')) {
+                    isInThinking = true;
+                    const parts = content.split('<thinking>');
+                    if (parts[0]) {
+                      mainContent += parts[0];
+                      yield this.createStreamResponse(parts[0], 'main');
+                    }
+                    if (parts[1]) {
+                      thinkingContent += parts[1];
+                    }
+                    continue;
+                  }
+                  
+                  if (content.includes('</thinking>')) {
+                    isInThinking = false;
+                    const parts = content.split('</thinking>');
+                    if (parts[0]) {
+                      thinkingContent += parts[0];
+                    }
+                    // 输出完整的思考过程
+                    if (thinkingContent) {
+                      yield this.createStreamResponse(thinkingContent, 'thinking');
+                      thinkingContent = '';
+                    }
+                    if (parts[1]) {
+                      mainContent += parts[1];
+                      yield this.createStreamResponse(parts[1], 'main');
+                    }
+                    continue;
+                  }
+                }
+
+                // 根据当前状态处理内容
+                if (isInThinking) {
+                  thinkingContent += content;
+                  yield this.createStreamResponse(content, 'thinking');
+                } else {
+                  mainContent += content;
+                  yield this.createStreamResponse(content, 'main');
+                }
+              }
+            } catch (e) {
+              console.error('Error parsing stream data:', e);
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  private createStreamResponse(content: string, type: 'main' | 'thinking'): GenerateContentResponse {
+    const part: any = { text: content };
+    if (type === 'thinking') {
+      part.type = 'thinking';
+    }
+
+    return {
+      candidates: [{
+        content: {
+          parts: [part],
+          role: 'model',
+        },
+        finishReason: 'STOP',
+        index: 0,
+      }],
+    } as GenerateContentResponse;
   }
 
   async countTokens(request: CountTokensParameters): Promise<CountTokensResponse> {

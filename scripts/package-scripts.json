@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "publish:patch": "node scripts/publish.js patch",
+    "publish:minor": "node scripts/publish.js minor", 
+    "publish:major": "node scripts/publish.js major",
+    "publish:dry-run": "npm pack --dry-run",
+    "release": "npm run build && npm run test && node scripts/publish.js"
+  }
+}
