@@ -337,10 +337,17 @@ export class GeminiClient {
     try {
       const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
+      
+      // 获取工具定义以支持工具调用
+      const toolRegistry = await this.config.getToolRegistry();
+      const toolDeclarations = toolRegistry.getFunctionDeclarations();
+      const tools: Tool[] = [{ functionDeclarations: toolDeclarations }];
+      
       const requestConfig = {
         abortSignal,
         ...this.generateContentConfig,
         ...config,
+        tools, // 添加工具定义
       };
 
       const apiCall = () =>

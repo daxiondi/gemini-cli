@@ -51,7 +51,7 @@ export const PROVIDER_CONFIGS: Record<ModelProvider, ProviderConfig> = {
   [ModelProvider.DOUBAO]: {
     defaultModel: DEFAULT_DOUBAO_MODEL,
     defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
-    thinkSupportedModels: ['Doubao-Seed-1.6-thinking','Doubao-Seed-1.6'], 
+    thinkSupportedModels: ['ep-20250611135615-hcldh','Doubao-Seed-1.6'], 
     embeddingModel: DEFAULT_DOUBAO_EMBEDDING_MODEL,
   },
   [ModelProvider.OPENAI]: {

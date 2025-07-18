@@ -75,33 +75,34 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
         {emphasis === 'high' && <TrailingIndicator />}
       </Box>
       {resultDisplay && (
-        <Box paddingLeft={STATUS_INDICATOR_WIDTH} width="100%" marginTop={1}>
+        <Box paddingLeft={STATUS_INDICATOR_WIDTH} width="100%" marginTop={0}>
           <Box flexDirection="column">
-            {typeof resultDisplay === 'string' && renderOutputAsMarkdown && (
-              <Box flexDirection="column">
-                <MarkdownDisplay
-                  text={resultDisplay}
-                  isPending={false}
-                  availableTerminalHeight={availableHeight}
-                  terminalWidth={childWidth}
-                />
+            <Box paddingLeft={1}>
+              <Text color={Colors.Gray}>⎿ </Text>
+              <Box flexDirection="column" flexGrow={1}>
+                {typeof resultDisplay === 'string' && renderOutputAsMarkdown && (
+                  <MarkdownDisplay
+                    text={resultDisplay}
+                    isPending={false}
+                    availableTerminalHeight={availableHeight}
+                    terminalWidth={childWidth - 3}
+                  />
+                )}
+                {typeof resultDisplay === 'string' && !renderOutputAsMarkdown && (
+                  <MaxSizedBox maxHeight={availableHeight} maxWidth={childWidth - 3}>
+                    <Text wrap="wrap">{resultDisplay}</Text>
+                  </MaxSizedBox>
+                )}
+                {typeof resultDisplay !== 'string' && (
+                  <DiffRenderer
+                    diffContent={resultDisplay.fileDiff}
+                    filename={resultDisplay.fileName}
+                    availableTerminalHeight={availableHeight}
+                    terminalWidth={childWidth - 3}
+                  />
+                )}
               </Box>
-            )}
-            {typeof resultDisplay === 'string' && !renderOutputAsMarkdown && (
-              <MaxSizedBox maxHeight={availableHeight} maxWidth={childWidth}>
-                <Box>
-                  <Text wrap="wrap">{resultDisplay}</Text>
-                </Box>
-              </MaxSizedBox>
-            )}
-            {typeof resultDisplay !== 'string' && (
-              <DiffRenderer
-                diffContent={resultDisplay.fileDiff}
-                filename={resultDisplay.fileName}
-                availableTerminalHeight={availableHeight}
-                terminalWidth={childWidth}
-              />
-            )}
+            </Box>
           </Box>
         </Box>
       )}
@@ -118,28 +119,28 @@ const ToolStatusIndicator: React.FC<ToolStatusIndicatorProps> = ({
 }) => (
   <Box minWidth={STATUS_INDICATOR_WIDTH}>
     {status === ToolCallStatus.Pending && (
-      <Text color={Colors.AccentGreen}>o</Text>
+      <Text color={Colors.AccentBlue}>⏺</Text>
     )}
     {status === ToolCallStatus.Executing && (
       <GeminiRespondingSpinner
         spinnerType="toggle"
-        nonRespondingDisplay={'⊷'}
+        nonRespondingDisplay={'⏳'}
       />
     )}
     {status === ToolCallStatus.Success && (
-      <Text color={Colors.AccentGreen}>✔</Text>
+      <Text color={Colors.AccentGreen}>✓</Text>
     )}
     {status === ToolCallStatus.Confirming && (
-      <Text color={Colors.AccentYellow}>?</Text>
+      <Text color={Colors.AccentYellow}>❓</Text>
     )}
     {status === ToolCallStatus.Canceled && (
       <Text color={Colors.AccentYellow} bold>
-        -
+        ⚠
       </Text>
     )}
     {status === ToolCallStatus.Error && (
       <Text color={Colors.AccentRed} bold>
-        x
+        ✗
       </Text>
     )}
   </Box>
@@ -160,7 +161,7 @@ const ToolInfo: React.FC<ToolInfo> = ({
   const nameColor = React.useMemo<string>(() => {
     switch (emphasis) {
       case 'high':
-        return Colors.Foreground;
+        return Colors.AccentCyan;
       case 'medium':
         return Colors.Foreground;
       case 'low':
@@ -179,16 +180,16 @@ const ToolInfo: React.FC<ToolInfo> = ({
       >
         <Text color={nameColor} bold>
           {name}
-        </Text>{' '}
-        <Text color={Colors.Gray}>{description}</Text>
+        </Text>
+        <Text color={Colors.Gray}>({description})</Text>
       </Text>
     </Box>
   );
 };
 
 const TrailingIndicator: React.FC = () => (
-  <Text color={Colors.Foreground} wrap="truncate">
+  <Text color={Colors.AccentPurple} wrap="truncate">
     {' '}
-    ←
+    ⟸
   </Text>
 );

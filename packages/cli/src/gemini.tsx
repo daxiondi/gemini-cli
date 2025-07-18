@@ -137,6 +137,36 @@ export async function main() {
     }
   }
 
+  // 根据 AI_PROVIDER 自动调整认证类型
+  try {
+    const { getModelConfig, ModelProvider } = await import('@google/gemini-cli-core');
+    const modelConfig = getModelConfig();
+    
+    // 输出当前使用的模型信息
+    console.log(`🤖 当前配置:`);
+    console.log(`   提供商: ${modelConfig.provider}`);
+    console.log(`   模型: ${modelConfig.model}`);
+    console.log(`   认证方式: ${settings.merged.selectedAuthType || '未设置'}`);
+    if (modelConfig.baseUrl && modelConfig.provider !== ModelProvider.GEMINI) {
+      console.log(`   API地址: ${modelConfig.baseUrl}`);
+    }
+    console.log(''); // 空行分隔
+    
+    // 如果配置了非 Gemini 提供商，且当前认证类型是 Google 登录，则改为 API Key 认证
+    if (modelConfig.provider !== ModelProvider.GEMINI && 
+        settings.merged.selectedAuthType === AuthType.LOGIN_WITH_GOOGLE) {
+      console.log(`🔄 检测到 AI_PROVIDER=${modelConfig.provider}，自动切换到 API Key 认证`);
+      settings.setValue(
+        SettingScope.User,
+        'selectedAuthType',
+        AuthType.USE_GEMINI, // 这个类型会使用 API Key
+      );
+    }
+  } catch (error) {
+    // 如果获取配置失败，继续使用原有逻辑
+    console.debug('Failed to auto-detect auth type from AI_PROVIDER:', error);
+  }
+
   setMaxSizedBoxDebugging(config.getDebugMode());
 
   await config.initialize();

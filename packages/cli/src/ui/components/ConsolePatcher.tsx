@@ -31,15 +31,21 @@ export const useConsolePatcher = ({
         originalMethod: (...args: unknown[]) => void,
       ) =>
       (...args: unknown[]) => {
-        if (debugMode) {
+        const content = formatArgs(args);
+        
+        // 始终显示到真实控制台用于调试
+        if (debugMode || 
+            content.includes('🔄') || content.includes('🔧') || content.includes('📋') || content.includes('⚙️') ||
+            content.includes('📤') || content.includes('📥') || content.includes('📊') || content.includes('✅') ||
+            content.includes('❌') || content.includes('⚠️') || content.includes('🤔') || content.includes('🛠️')) {
           originalMethod.apply(console, args);
         }
 
-        // Then, if it's not a debug message or debugMode is on, pass to onNewMessage
-        if (type !== 'debug' || debugMode) {
+        // 同时发送到UI消息系统（避免重复）
+        if ((type !== 'debug' || debugMode) && !debugMode) {
           onNewMessage({
             type,
-            content: formatArgs(args),
+            content,
             count: 1,
           });
         }

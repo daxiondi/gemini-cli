@@ -1,4 +1,4 @@
-## Building and running
+<!-- ## Building and running
 
 Before submitting any changes, it is crucial to validate them by running the full preflight check. This command will build the repository, run all tests, check for type errors, and lint the code.
 
@@ -182,4 +182,4 @@ Only write high-value comments if at all. Avoid talking to the user through comm
 
 ## General style requirements
 
-Use hyphens instead of underscores in flag names (e.g. `my-flag` instead of `my_flag`).
+Use hyphens instead of underscores in flag names (e.g. `my-flag` instead of `my_flag`). -->
